@@ -1,0 +1,27 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: file-monitor-agent
+  labels:
+    app: file-monitor-agent
+spec:
+  selector:
+    matchLabels:
+      app: file-monitor-agent
+  template:
+    metadata:
+      labels:
+        app: file-monitor-agent
+    spec:
+      containers:
+      - name: file-monitor-agent
+        image: myrepo/file-monitor-agent:latest
+        volumeMounts:
+        - name: home-dir
+          mountPath: /home/  # Mounts the host home directory inside the container
+      volumes:
+      - name: home-dir
+        hostPath:
+          path: /home/  # This will map the real home directory from the host
+          type: Directory
+      restartPolicy: Always
