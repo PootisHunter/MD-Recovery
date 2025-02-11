@@ -1,17 +1,15 @@
-# Use lightweight Python image
+# Use a lightweight Python base image
 FROM python:3.10-slim
 
-# Set working directory
+# Set the working directory inside the container
 WORKDIR /app
 
-# Copy the script
+# Copy the script and requirements
+COPY requirements.txt .
 COPY agent.py .
 
 # Install dependencies
-RUN pip install watchdog requests
+RUN pip install --no-cache-dir -r requirements.txt
 
-# Create a volume for monitoring
-VOLUME ["/watched"]
-
-# Run the script
+# Run the file monitor script
 CMD ["python", "agent.py"]
