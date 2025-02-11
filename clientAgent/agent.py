@@ -3,16 +3,20 @@ import hashlib
 import json
 import socket
 import uuid
+from prometheus_client import start_http_server, Counter
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 import requests
+
+# Prometheus Metrics
+FILE_EVENTS = Counter("file_events_total", "Total file events", ["event_type"])
 
 # Configuration
 CLIENT_ID = str(uuid.uuid4())  # Unique Client ID
 IP_ADDRESS = socket.gethostbyname(socket.gethostname())  # Get IP address
 HOSTNAME = socket.gethostname()  # Get hostname
 MONITOR_PATH = "/home/"  # Folder to monitor
-SERVER_URL = "http://central-server:5000/alert"  # Central detection system
+SERVER_URL = "http://alert-handler:8000/alert"  # Central detection system
 
 class FileMonitorHandler(FileSystemEventHandler):
     def process(self, event):
@@ -21,6 +25,8 @@ class FileMonitorHandler(FileSystemEventHandler):
             return
 
         file_path = event.src_path
+        event_type = event.event_type
+        FILE_EVENTS.labels(event_type=event_type).inc()
         try:
             # Calculate file hash
             with open(file_path, "rb") as f:
@@ -37,6 +43,7 @@ class FileMonitorHandler(FileSystemEventHandler):
             "filename": file_path,
             "hash": file_hash,
             "event_type": event.event_type,
+            "severity": "low",
             "timestamp": time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime())  # Timestamp of the event
         }
 
@@ -60,11 +67,13 @@ class FileMonitorHandler(FileSystemEventHandler):
 
     def on_deleted(self, event):
         """Handle file deletion event"""
+        FILE_EVENTS.labels(event_type="deleted").inc()
         print(f"File deleted: {event.src_path}")
 
 
 if __name__ == "__main__":
     # Set up file monitoring
+    start_http_server(9000)
     observer = Observer()
     event_handler = FileMonitorHandler()
     observer.schedule(event_handler, MONITOR_PATH, recursive=True)

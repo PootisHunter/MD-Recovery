@@ -1,0 +1,39 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: client-agent
+spec:
+  replicas: 2  # Adjust based on load
+  selector:
+    matchLabels:
+      app: client-agent
+  template:
+    metadata:
+      labels:
+        app: client-agent
+    spec:
+      containers:
+        - name: client-agent
+          image: client-agent:latest
+          volumeMounts:
+            - mountPath: /home/
+              name: monitored-volume
+          env:
+            - name: SERVER_URL
+              value: "http://alert-handler:8000/alert"
+      volumes:
+        - name: monitored-volume
+          hostPath:
+            path: /home/
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: client-agent
+spec:
+  selector:
+    app: client-agent
+  ports:
+    - protocol: TCP
+      port: 9000
+      targetPort: 9000

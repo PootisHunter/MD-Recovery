@@ -6,9 +6,9 @@ services:
       context: ./clientAgent
       dockerfile: Dockerfile
     volumes:
-      - /home/:/home/  # Mount a local folder for monitoring
+      - /home/:/home/
     environment:
-      - SERVER_URL=http://alert-handler:8000/alert  # Use service name for FastAPI
+      - SERVER_URL=http://alert-handler:8000/alert
     depends_on:
       - alert-handler
 
@@ -18,5 +18,20 @@ services:
       dockerfile: Dockerfile
     ports:
       - "8000:8000"
+      - "9001:9001"
     environment:
-      - ADMIN_API_URL=http://admin-system/receive-alert  # Replace with actual admin URL
+      - ADMIN_API_URL=http://admin-system/receive-alert
+
+  prometheus:
+    image: prom/prometheus
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - "9090:9090"
+
+  grafana:
+    image: grafana/grafana
+    ports:
+      - "3000:3000"
+    depends_on:
+      - prometheus

@@ -2,9 +2,12 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 import os
 import requests
+from prometheus_client import start_http_server, Counter
 
 app = FastAPI()
 
+
+ALERTS_RECEIVED = Counter("alerts_received_total", "Total alerts received", ["severity"])
 # Administrator API URL (replace with actual endpoint)
 ADMIN_API_URL = os.getenv("ADMIN_API_URL", "http://admin-system/receive-alert")
 
@@ -25,6 +28,7 @@ def receive_alert(alert: Alert):
     print(f"🔔 Received Alert: {alert}")
 
     # Forward alert to the admin REST API
+    ALERTS_RECEIVED.labels(severity=alert.severity).inc()
     response = forward_to_admin(alert)
 
     return {"message": "Alert received", "admin_response": response}
@@ -32,8 +36,7 @@ def receive_alert(alert: Alert):
 def forward_to_admin(alert: Alert):
     """Sends alert details to the administrator REST API."""
     try:
-        payload = alert.dict()
-        response = requests.post(ADMIN_API_URL, json=payload, timeout=5)
+        response = requests.post(ADMIN_API_URL, json=alert.model_dump(), timeout=5)
 
         if response.status_code == 200:
             print("✅ Alert successfully forwarded to administrator.")
@@ -44,3 +47,6 @@ def forward_to_admin(alert: Alert):
     except Exception as e:
         print(f"❌ Exception in forwarding alert: {e}")
         return {"error": str(e)}
+    
+if __name__ == "__main__":
+    start_http_server(9001)
