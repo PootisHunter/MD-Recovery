@@ -1,0 +1,22 @@
+version: "3.8"
+
+services:
+  client-agent:
+    build:
+      context: ./clientAgent
+      dockerfile: Dockerfile
+    volumes:
+      - /home/:/home/  # Mount a local folder for monitoring
+    environment:
+      - SERVER_URL=http://alert-handler:8000/alert  # Use service name for FastAPI
+    depends_on:
+      - alert-handler
+
+  alert-handler:
+    build:
+      context: ./alertHandler
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - ADMIN_API_URL=http://admin-system/receive-alert  # Replace with actual admin URL

@@ -11,7 +11,7 @@ import requests
 CLIENT_ID = str(uuid.uuid4())  # Unique Client ID
 IP_ADDRESS = socket.gethostbyname(socket.gethostname())  # Get IP address
 HOSTNAME = socket.gethostname()  # Get hostname
-MONITOR_PATH = "~/"  # Folder to monitor
+MONITOR_PATH = "/home/"  # Folder to monitor
 SERVER_URL = "http://central-server:5000/alert"  # Central detection system
 
 class FileMonitorHandler(FileSystemEventHandler):
