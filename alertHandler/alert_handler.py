@@ -3,6 +3,7 @@ from pydantic import BaseModel
 import os
 import requests
 from prometheus_client import start_http_server, Counter
+import uvicorn
 
 app = FastAPI()
 
@@ -50,3 +51,4 @@ def forward_to_admin(alert: Alert):
     
 if __name__ == "__main__":
     start_http_server(9001)
+    uvicorn.run(app, host="0.0.0.0", port=8000)

@@ -7,6 +7,11 @@ from prometheus_client import start_http_server, Counter
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 import requests
+from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
+import zipfile
+import os
+import uvicorn
 
 # Prometheus Metrics
 FILE_EVENTS = Counter("file_events_total", "Total file events", ["event_type"])
@@ -17,7 +22,16 @@ IP_ADDRESS = socket.gethostbyname(socket.gethostname())  # Get IP address
 HOSTNAME = socket.gethostname()  # Get hostname
 MONITOR_PATH = "/home/"  # Folder to monitor
 SERVER_URL = "http://alert-handler:8000/alert"  # Central detection system
+BACKUP_NODE_URL = "http://backup-node:9000/api/backup"  # URL of the backup node
 
+app = FastAPI()
+
+# Request model for receiving backup trigger
+class BackupRequest(BaseModel):
+    action: str  # The action to trigger backup (e.g., "backup")
+    timestamp: str  # The timestamp for backup
+
+# Monitor file events
 class FileMonitorHandler(FileSystemEventHandler):
     def process(self, event):
         """Process file events"""
@@ -70,6 +84,66 @@ class FileMonitorHandler(FileSystemEventHandler):
         FILE_EVENTS.labels(event_type="deleted").inc()
         print(f"File deleted: {event.src_path}")
 
+# Backup process functions
+def zip_folder(folder_path, zip_filename):
+    """Zip the entire folder and return the path to the zip file."""
+    zip_filepath = f"/tmp/{zip_filename}"
+    with zipfile.ZipFile(zip_filepath, 'w', zipfile.ZIP_DEFLATED) as zipf:
+        # Walk through the directory and add files to the zip archive
+        for root, dirs, files in os.walk(folder_path):
+            for file in files:
+                file_path = os.path.join(root, file)
+                zipf.write(file_path, os.path.relpath(file_path, folder_path))
+    return zip_filepath
+
+def send_backup_to_node(zip_file_path):
+    """Send the zip file to the backup node via HTTP POST request."""
+    try:
+        timestamp = time.strftime("%Y-%m-%d_%H-%M-%S", time.gmtime())  # Create a timestamp for the backup
+        filename = os.path.basename(zip_file_path)  # Use the zip file name as the backup filename
+
+        # Send the backup file to the backup node's /api/backup endpoint
+        with open(zip_file_path, 'rb') as file:
+            files = {'file': (filename, file, 'application/zip')}
+            data = {'timestamp': timestamp, 'filename': filename, 'client_id': CLIENT_ID}  # Include client_id
+            response = requests.post(BACKUP_NODE_URL, data=data, files=files)
+
+        # Handle the response
+        if response.status_code == 200:
+            print(f"Backup sent successfully: {response.json()}")
+        else:
+            print(f"Failed to send backup: {response.json()}")
+    except Exception as e:
+        print(f"Error sending backup to node: {e}")
+
+def backup_files():
+    """Trigger the file backup."""
+    zip_filename = f"backup_{time.strftime('%Y-%m-%d_%H-%M-%S', time.gmtime())}.zip"
+
+    # Step 1: Zip the folder
+    zip_file_path = zip_folder(MONITOR_PATH, zip_filename)
+
+    # Step 2: Send the zip file to the backup node
+    send_backup_to_node(zip_file_path)
+
+    # Step 3: Optionally, remove the zip file after sending (if no longer needed)
+    os.remove(zip_file_path)
+
+# Backup API route
+@app.post("/api/backup")
+def trigger_backup(backup_request: BackupRequest):
+    """Endpoint to receive backup trigger and start the backup process."""
+    if backup_request.action == "backup":
+        print(f"Backup requested at {backup_request.timestamp}. Triggering backup...")
+        backup_files()  # Call the backup function when requested
+        return {"status": "success", "message": "Backup initiated"}
+    else:
+        raise HTTPException(status_code=400, detail="Invalid action")
+
+@app.get("/api/health")
+def health():
+    """Health check endpoint."""
+    return {"status": "Client agent healthy"}
 
 if __name__ == "__main__":
     # Set up file monitoring
@@ -80,6 +154,9 @@ if __name__ == "__main__":
 
     print(f"Monitoring {MONITOR_PATH} for changes...")
     observer.start()
+
+    # Start FastAPI server for backup listening
+    uvicorn.run(app, host="0.0.0.0", port=8000)
 
     try:
         while True:
