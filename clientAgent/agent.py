@@ -81,7 +81,6 @@ class FileMonitorHandler(FileSystemEventHandler):
 
     def on_deleted(self, event):
         """Handle file deletion event"""
-        FILE_EVENTS.labels(event_type="deleted").inc()
         print(f"File deleted: {event.src_path}")
 
 # Backup process functions

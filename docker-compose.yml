@@ -1,26 +1,43 @@
-version: "3.8"
+version: '3.8'
 
 services:
-  client-agent:
+  agent:
     build:
-      context: ./clientAgent
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: Dockerfile.agent
     volumes:
-      - /home/:/home/
-    environment:
-      - SERVER_URL=http://alert-handler:8000/alert
+      - /home:/home  # Mount home directory to monitor
+    ports:
+      - "8000:8000"
+      - "9000:9000"  # Prometheus metrics
     depends_on:
       - alert-handler
+      - backup-node
+    networks:
+      - monitoring
 
   alert-handler:
     build:
-      context: ./alertHandler
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: Dockerfile.alert_handler
     ports:
       - "8000:8000"
-      - "9001:9001"
+      - "9001:9001"  # Prometheus metrics
     environment:
       - ADMIN_API_URL=http://admin-system/receive-alert
+    networks:
+      - monitoring
+
+  backup-node:
+    build:
+      context: .
+      dockerfile: Dockerfile.backup_node
+    volumes:
+      - ./backups:/app/backups  # Persistent backup storage
+    ports:
+      - "9000:9000"
+    networks:
+      - monitoring
 
   prometheus:
     image: prom/prometheus
@@ -28,10 +45,22 @@ services:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml
     ports:
       - "9090:9090"
+    networks:
+      - monitoring
 
   grafana:
     image: grafana/grafana
     ports:
       - "3000:3000"
+    networks:
+      - monitoring
     depends_on:
       - prometheus
+
+networks:
+  monitoring:
+    driver: bridge
+
+volumes:
+  prometheus_data:
+    driver: local

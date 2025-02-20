@@ -3,3 +3,4 @@ pydantic
 watchdog
 requests
 uvicorn
+prometheus_client

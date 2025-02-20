@@ -1,11 +1,21 @@
-FROM python:3.10-slim
+# Use an official Python runtime as a parent image
+FROM python:3.9-slim
 
+# Set environment variables
+ENV PYTHONUNBUFFERED=1
+
+# Set working directory
 WORKDIR /app
 
-COPY alert_handler.py .
+# Copy requirements and install dependencies
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
 
-RUN pip install fastapi uvicorn requests
+# Copy the application code
+COPY . .
 
-EXPOSE 8000
+# Expose necessary ports (8000 for FastAPI, 9001 for Prometheus metrics)
+EXPOSE 8000 9001
 
-CMD ["uvicorn", "alert_handler:app", "--host", "0.0.0.0", "--port", "8000"]
+# Run the alert handler service
+CMD ["python", "alert_handler.py"]
