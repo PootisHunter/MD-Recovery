@@ -9,7 +9,7 @@ services:
       - /home:/home  # Mount home directory to monitor
     ports:
       - "8000:8000"
-      - "9000:9000"  # Prometheus metrics
+      - "9090:9090"  # Prometheus metrics
     depends_on:
       - alert-handler
       - backup-node
