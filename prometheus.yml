@@ -1,0 +1,19 @@
+global:
+  scrape_interval: 15s  # Default scrape interval
+
+scrape_configs:
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']  # Prometheus monitoring itself
+
+  - job_name: 'agent-service'
+    static_configs:
+      - targets: ['agent:9000']  # Replace 'agent-service' with the actual service name for agent
+
+  - job_name: 'alert-handler-service'
+    static_configs:
+      - targets: ['alert-handler:9001']  # Replace with the actual service name for alert handler
+
+  - job_name: 'admin-system-service'
+    static_configs:
+      - targets: ['admin-system:9002']  # Replace with the actual service name for admin s

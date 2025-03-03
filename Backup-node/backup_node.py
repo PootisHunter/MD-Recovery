@@ -46,4 +46,4 @@ def health():
 
 if __name__ == '__main__':
     # Start the backup node server
-    app.run(host='0.0.0.0', port=9002, debug=True)
+    app.run(host='0.0.0.0', port=8003, debug=True)

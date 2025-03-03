@@ -2,8 +2,9 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   annotations:
-    kompose.cmd: kompose convert --out=k8s-manifests/
+    kompose.cmd: kompose convert -f docker-compose.yml -o k8s/
     kompose.version: 1.35.0 (9532ceef3)
+    kompose.volume.size: 1Gi
   labels:
     io.kompose.service: prometheus
   name: prometheus
@@ -17,8 +18,9 @@ spec:
   template:
     metadata:
       annotations:
-        kompose.cmd: kompose convert --out=k8s-manifests/
+        kompose.cmd: kompose convert -f docker-compose.yml -o k8s/
         kompose.version: 1.35.0 (9532ceef3)
+        kompose.volume.size: 1Gi
       labels:
         io.kompose.service: prometheus
     spec:
@@ -30,9 +32,10 @@ spec:
               protocol: TCP
           volumeMounts:
             - mountPath: /etc/prometheus/prometheus.yml
-              name: prometheus-claim0
+              name: prometheus-config
+              subPath: prometheus.yml
       restartPolicy: Always
       volumes:
-        - name: prometheus-claim0
-          persistentVolumeClaim:
-            claimName: prometheus-claim0
+        - name: prometheus-config
+          configMap:
+            name: prometheus-config

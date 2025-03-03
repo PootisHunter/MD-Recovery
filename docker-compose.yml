@@ -2,6 +2,7 @@ version: '3.8'
 
 services:
   agent:
+    image: retudocker/agent-image:latest
     build:
       context: .
       dockerfile: Dockerfile.agent
@@ -9,44 +10,66 @@ services:
       - /home:/home  # Mount home directory to monitor
     ports:
       - "8000:8000"
-      - "9090:9090"  # Prometheus metrics
     depends_on:
       - alert-handler
       - backup-node
     networks:
       - monitoring
+    environment:
+      - PROMETHEUS_PORT=9000
 
   alert-handler:
+    image: retudocker/alert-handler-image:latest
     build:
       context: .
       dockerfile: Dockerfile.alert_handler
+    depends_on:
+      - admin-system
     ports:
-      - "8000:8000"
+      - "8002:8002"
       - "9001:9001"  # Prometheus metrics
     environment:
       - ADMIN_API_URL=http://admin-system/receive-alert
+      - PROMETHEUS_PORT=9001
+    env_file:
+      - .env
     networks:
       - monitoring
 
+
   backup-node:
+    image: retudocker/backup-node-image:latest
     build:
       context: .
       dockerfile: Dockerfile.backup_node
     volumes:
       - ./backups:/app/backups  # Persistent backup storage
     ports:
-      - "9000:9000"
+      - "8003:8003"
+    networks:
+      - monitoring
+
+  admin-system:
+    image: retudocker/admin-system-image:latest
+    build: .
+    ports:
+      - "8001:8001"
+      - "9002:9002"  # Prometheus metrics
+    environment:
+      - PROMETHEUS_PORT=9002
     networks:
       - monitoring
 
   prometheus:
     image: prom/prometheus
     volumes:
-      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/etc/prometheus
     ports:
       - "9090:9090"
     networks:
       - monitoring
+    labels:
+      kompose.volume.size: "1Gi"
 
   grafana:
     image: grafana/grafana
@@ -64,3 +87,7 @@ networks:
 volumes:
   prometheus_data:
     driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./prometheus_data

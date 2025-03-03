@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   annotations:
-    kompose.cmd: kompose convert --out=k8s-manifests/
+    kompose.cmd: kompose convert -f docker-compose.yml -o k8s/
     kompose.version: 1.35.0 (9532ceef3)
   labels:
     io.kompose.service: alert-handler
@@ -15,7 +15,7 @@ spec:
   template:
     metadata:
       annotations:
-        kompose.cmd: kompose convert --out=k8s-manifests/
+        kompose.cmd: kompose convert -f docker-compose.yml -o k8s/
         kompose.version: 1.35.0 (9532ceef3)
       labels:
         io.kompose.service: alert-handler
@@ -24,10 +24,22 @@ spec:
         - env:
             - name: ADMIN_API_URL
               value: http://admin-system/receive-alert
-          image: docker.io/retudocker/alert-handler-image:latest
+            - name: OPENAI_API_KEY
+              valueFrom:
+                configMapKeyRef:
+                  key: OPENAI_API_KEY
+                  name: env
+            - name: PROMETHEUS_PORT
+              value: "9001"
+            - name: VIRUSTOTAL_API_KEY
+              valueFrom:
+                configMapKeyRef:
+                  key: VIRUSTOTAL_API_KEY
+                  name: env
+          image: retudocker/alert-handler-image:latest
           name: alert-handler
           ports:
-            - containerPort: 8000
+            - containerPort: 8002
               protocol: TCP
             - containerPort: 9001
               protocol: TCP

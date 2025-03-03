@@ -1,0 +1,19 @@
+global:
+  scrape_interval: 15s  # Default scrape interval
+
+scrape_configs:
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']  # Prometheus monitoring itself
+
+  - job_name: 'agent'
+    static_configs:
+      - targets: ['agent:9000']  # Target on port 9000
+
+  - job_name: 'alert-handler'
+    static_configs:
+      - targets: ['alert-handler:9001']  # Target on port 9001
+
+  - job_name: 'admin-system'
+    static_configs:
+      - targets: ['admin-system:9002']  # Target on port 9002

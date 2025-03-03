@@ -3,3 +3,4 @@ pydantic
 prometheus_client
 requests
 uvicorn
+openai

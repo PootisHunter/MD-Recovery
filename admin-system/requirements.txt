@@ -1,0 +1,6 @@
+fastapi
+pydantic
+uvicorn
+prometheus_client
+typing
+requests

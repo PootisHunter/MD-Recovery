@@ -13,7 +13,9 @@ import zipfile
 import os
 import uvicorn
 
+
 # Prometheus Metrics
+PROMETHEUS_PORT = int(os.getenv("PROMETHEUS_PORT", 9000))
 FILE_EVENTS = Counter("file_events_total", "Total file events", ["event_type"])
 
 # Configuration
@@ -21,8 +23,8 @@ CLIENT_ID = str(uuid.uuid4())  # Unique Client ID
 IP_ADDRESS = socket.gethostbyname(socket.gethostname())  # Get IP address
 HOSTNAME = socket.gethostname()  # Get hostname
 MONITOR_PATH = "/home/"  # Folder to monitor
-SERVER_URL = "http://alert-handler:8000/alert"  # Central detection system
-BACKUP_NODE_URL = "http://backup-node:9000/api/backup"  # URL of the backup node
+SERVER_URL = os.getenv("SERVER_URL", "http://alert-handler:8002/alert")
+BACKUP_NODE_URL = os.getenv("BACKUP_NODE_URL", "http://backup-node:8003/api/backup")
 
 app = FastAPI()
 
@@ -126,7 +128,6 @@ def backup_files():
     send_backup_to_node(zip_file_path)
 
     # Step 3: Optionally, remove the zip file after sending (if no longer needed)
-    os.remove(zip_file_path)
 
 # Backup API route
 @app.post("/api/backup")
@@ -146,7 +147,7 @@ def health():
 
 if __name__ == "__main__":
     # Set up file monitoring
-    start_http_server(9000)
+    start_http_server(PROMETHEUS_PORT)
     observer = Observer()
     event_handler = FileMonitorHandler()
     observer.schedule(event_handler, MONITOR_PATH, recursive=True)
